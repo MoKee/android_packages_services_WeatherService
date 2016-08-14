@@ -18,5 +18,5 @@
 
 -keepattributes *Annotation*,EnclosingMethod,Signature,LineNumberTable,SourceFile
 
--dontwarn cyanogenmod.**
--keep class cyanogenmod.app.** { *; }
+-dontwarn mokee.**
+-keep class mokee.app.** { *; }

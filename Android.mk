@@ -1,3 +1,4 @@
+# Copyright (C) 2016 The MoKee Open Source Project
 # Copyright (C) 2016 The CyanogenMod Project
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,7 +17,7 @@ LOCAL_PATH:= $(call my-dir)
 
 include $(CLEAR_VARS)
 LOCAL_PACKAGE_NAME := WeatherManagerService
-LOCAL_STATIC_JAVA_LIBRARIES := org.cyanogenmod.platform.internal
+LOCAL_STATIC_JAVA_LIBRARIES := org.mokee.platform.internal
 LOCAL_SRC_FILES := $(call all-java-files-under, src)
 LOCAL_RESOURCE_DIR := $(LOCAL_PATH)/res
 LOCAL_PROGUARD_FLAG_FILES := proguard.flags

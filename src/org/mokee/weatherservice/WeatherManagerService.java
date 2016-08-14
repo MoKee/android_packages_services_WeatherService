@@ -1,4 +1,5 @@
 /*
+ * Copyright (C) 2016 The MoKee Open Source Project
  * Copyright (C) 2016 The CyanogenMod Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.cyanogenmod.weatherservice;
+package org.mokee.weatherservice;
 
 import android.app.AppGlobals;
 import android.app.Service;
@@ -37,17 +38,17 @@ import android.text.TextUtils;
 import android.util.Slog;
 import com.android.internal.content.PackageMonitor;
 import com.android.internal.os.BackgroundThread;
-import cyanogenmod.providers.CMSettings;
-import cyanogenmod.providers.WeatherContract;
-import cyanogenmod.weather.CMWeatherManager;
-import cyanogenmod.weather.ICMWeatherManager;
-import cyanogenmod.weather.IRequestInfoListener;
-import cyanogenmod.weather.IWeatherServiceProviderChangeListener;
-import cyanogenmod.weather.RequestInfo;
-import cyanogenmod.weather.WeatherInfo;
-import cyanogenmod.weatherservice.IWeatherProviderService;
-import cyanogenmod.weatherservice.IWeatherProviderServiceClient;
-import cyanogenmod.weatherservice.ServiceRequestResult;
+import mokee.providers.MKSettings;
+import mokee.providers.WeatherContract;
+import mokee.weather.MKWeatherManager;
+import mokee.weather.IMKWeatherManager;
+import mokee.weather.IRequestInfoListener;
+import mokee.weather.IWeatherServiceProviderChangeListener;
+import mokee.weather.RequestInfo;
+import mokee.weather.WeatherInfo;
+import mokee.weatherservice.IWeatherProviderService;
+import mokee.weatherservice.IWeatherProviderServiceClient;
+import mokee.weatherservice.ServiceRequestResult;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -76,7 +77,7 @@ public class WeatherManagerService extends Service {
         return mService;
     }
 
-    private final IBinder mService = new ICMWeatherManager.Stub() {
+    private final IBinder mService = new IMKWeatherManager.Stub() {
 
         @Override
         public void updateWeather(RequestInfo info) {
@@ -104,8 +105,8 @@ public class WeatherManagerService extends Service {
         public String getActiveWeatherServiceProviderLabel() {
             final long identity = Binder.clearCallingIdentity();
             try {
-                String enabledProviderService = CMSettings.Secure.getString(
-                        getContentResolver(), CMSettings.Secure.WEATHER_PROVIDER_SERVICE);
+                String enabledProviderService = MKSettings.Secure.getString(
+                        getContentResolver(), MKSettings.Secure.WEATHER_PROVIDER_SERVICE);
                 if (enabledProviderService != null) {
                     return getComponentLabel(
                             ComponentName.unflattenFromString(enabledProviderService));
@@ -134,8 +135,8 @@ public class WeatherManagerService extends Service {
     }
 
     private void bindActiveWeatherProviderService() {
-        String activeProviderService = CMSettings.Secure.getString(getContentResolver(),
-                CMSettings.Secure.WEATHER_PROVIDER_SERVICE);
+        String activeProviderService = MKSettings.Secure.getString(getContentResolver(),
+                MKSettings.Secure.WEATHER_PROVIDER_SERVICE);
         if (activeProviderService != null) {
             if (!bindService(new Intent().setComponent(
                     ComponentName.unflattenFromString(activeProviderService)),
@@ -152,7 +153,7 @@ public class WeatherManagerService extends Service {
             if (listener != null && listener.asBinder().pingBinder()) {
                 try {
                     listener.onWeatherRequestCompleted(info,
-                            CMWeatherManager.RequestStatus.FAILED, null);
+                            MKWeatherManager.RequestStatus.FAILED, null);
                 } catch (RemoteException e) {
                 }
             }
@@ -175,7 +176,7 @@ public class WeatherManagerService extends Service {
             if (listener != null && listener.asBinder().pingBinder()) {
                 try {
                     listener.onLookupCityRequestCompleted(info,
-                            CMWeatherManager.RequestStatus.FAILED, null);
+                            MKWeatherManager.RequestStatus.FAILED, null);
                 } catch (RemoteException e) {
                 }
             }
@@ -250,6 +251,10 @@ public class WeatherManagerService extends Service {
                 wi.getTemperatureUnit());
         contentValues.put(WeatherContract.WeatherColumns.CURRENT_CONDITION_CODE,
                 wi.getConditionCode());
+        contentValues.put(WeatherContract.WeatherColumns.CURRENT_AQI,
+                wi.getAqi());
+        contentValues.put(WeatherContract.WeatherColumns.CURRENT_UV,
+                wi.getUv());
         contentValues.put(WeatherContract.WeatherColumns.CURRENT_HUMIDITY,
                 wi.getHumidity());
         contentValues.put(WeatherContract.WeatherColumns.CURRENT_WIND_SPEED,
@@ -289,8 +294,8 @@ public class WeatherManagerService extends Service {
         PackageMonitor monitor = new PackageMonitor() {
             @Override
             public void onPackageModified(String packageName) {
-                String enabledProviderService = CMSettings.Secure.getString(
-                        getContentResolver(), CMSettings.Secure.WEATHER_PROVIDER_SERVICE);
+                String enabledProviderService = MKSettings.Secure.getString(
+                        getContentResolver(), MKSettings.Secure.WEATHER_PROVIDER_SERVICE);
                 if (enabledProviderService == null) return;
                 ComponentName cn = ComponentName.unflattenFromString(enabledProviderService);
                 if (!TextUtils.equals(packageName, cn.getPackageName())) return;
@@ -300,8 +305,8 @@ public class WeatherManagerService extends Service {
                     //(most likely remove->install)
                     if (!bindService(new Intent().setComponent(cn),
                             mWeatherServiceProviderConnection, Context.BIND_AUTO_CREATE)) {
-                        CMSettings.Secure.putStringForUser( getContentResolver(),
-                                CMSettings.Secure.WEATHER_PROVIDER_SERVICE, null,
+                        MKSettings.Secure.putStringForUser( getContentResolver(),
+                                MKSettings.Secure.WEATHER_PROVIDER_SERVICE, null,
                                 getChangingUserId());
                         Slog.w(TAG, "Unable to rebind " + cn.flattenToString() + " after receiving"
                                 + " package modified notification. Settings updated.");
@@ -313,8 +318,8 @@ public class WeatherManagerService extends Service {
 
             @Override
             public boolean onPackageChanged(String packageName, int uid, String[] components) {
-                String enabledProviderService = CMSettings.Secure.getString(
-                        getContentResolver(), CMSettings.Secure.WEATHER_PROVIDER_SERVICE);
+                String enabledProviderService = MKSettings.Secure.getString(
+                        getContentResolver(), MKSettings.Secure.WEATHER_PROVIDER_SERVICE);
                 if (enabledProviderService == null) return false;
 
                 boolean packageChanged = false;
@@ -337,8 +342,8 @@ public class WeatherManagerService extends Service {
                         } else {
                             disconnectClient();
                             //The package is not enabled so we can't use it anymore
-                            CMSettings.Secure.putStringForUser(getContentResolver(),
-                                    CMSettings.Secure.WEATHER_PROVIDER_SERVICE, null,
+                            MKSettings.Secure.putStringForUser(getContentResolver(),
+                                    MKSettings.Secure.WEATHER_PROVIDER_SERVICE, null,
                                     getChangingUserId());
                             Slog.w(TAG, "Active provider " + cn.flattenToString() + " disabled");
                             notifyProviderChanged(null);
@@ -354,16 +359,16 @@ public class WeatherManagerService extends Service {
 
             @Override
             public void onPackageRemoved(String packageName, int uid) {
-                String enabledProviderService = CMSettings.Secure.getString(
-                        getContentResolver(), CMSettings.Secure.WEATHER_PROVIDER_SERVICE);
+                String enabledProviderService = MKSettings.Secure.getString(
+                        getContentResolver(), MKSettings.Secure.WEATHER_PROVIDER_SERVICE);
                 if (enabledProviderService == null) return;
 
                 ComponentName cn = ComponentName.unflattenFromString(enabledProviderService);
                 if (!TextUtils.equals(packageName, cn.getPackageName())) return;
 
                 disconnectClient();
-                CMSettings.Secure.putStringForUser(
-                        getContentResolver(), CMSettings.Secure.WEATHER_PROVIDER_SERVICE,
+                MKSettings.Secure.putStringForUser(
+                        getContentResolver(), MKSettings.Secure.WEATHER_PROVIDER_SERVICE,
                         null, getChangingUserId());
                 notifyProviderChanged(null);
             }
@@ -373,14 +378,14 @@ public class WeatherManagerService extends Service {
     }
 
     private void registerSettingsObserver() {
-        final Uri enabledWeatherProviderServiceUri = CMSettings.Secure.getUriFor(
-                CMSettings.Secure.WEATHER_PROVIDER_SERVICE);
+        final Uri enabledWeatherProviderServiceUri = MKSettings.Secure.getUriFor(
+                MKSettings.Secure.WEATHER_PROVIDER_SERVICE);
         ContentObserver observer = new ContentObserver(BackgroundThread.getHandler()) {
             @Override
             public void onChange(boolean selfChange, Uri uri) {
                 if (enabledWeatherProviderServiceUri.equals(uri)) {
-                    String activeSrvc = CMSettings.Secure.getString(getContentResolver(),
-                            CMSettings.Secure.WEATHER_PROVIDER_SERVICE);
+                    String activeSrvc = MKSettings.Secure.getString(getContentResolver(),
+                            MKSettings.Secure.WEATHER_PROVIDER_SERVICE);
                     disconnectClient();
                     if (activeSrvc != null) {
                         ComponentName cn = ComponentName.unflattenFromString(activeSrvc);
@@ -438,13 +443,13 @@ public class WeatherManagerService extends Service {
                     case RequestInfo.TYPE_WEATHER_BY_GEO_LOCATION_REQ:
                     case RequestInfo.TYPE_WEATHER_BY_WEATHER_LOCATION_REQ:
                         WeatherInfo weatherInfo = null;
-                        if (status == CMWeatherManager.RequestStatus.COMPLETED) {
+                        if (status == MKWeatherManager.RequestStatus.COMPLETED) {
                             weatherInfo = (result != null) ? result.getWeatherInfo() : null;
                             if (weatherInfo == null) {
                                 //This should never happen! WEATHER_REQUEST_COMPLETED is set
                                 //only if the weatherinfo object was not null when the request
                                 //was marked as completed
-                                status = CMWeatherManager.RequestStatus.FAILED;
+                                status = MKWeatherManager.RequestStatus.FAILED;
                             } else {
                                 if (!requestInfo.isQueryOnlyWeatherRequest()) {
                                     final long identity = Binder.clearCallingIdentity();
@@ -481,11 +486,11 @@ public class WeatherManagerService extends Service {
 
     private boolean isValidRequestInfoStatus(int state) {
         switch (state) {
-            case CMWeatherManager.RequestStatus.COMPLETED:
-            case CMWeatherManager.RequestStatus.ALREADY_IN_PROGRESS:
-            case CMWeatherManager.RequestStatus.FAILED:
-            case CMWeatherManager.RequestStatus.NO_MATCH_FOUND:
-            case CMWeatherManager.RequestStatus.SUBMITTED_TOO_SOON:
+            case MKWeatherManager.RequestStatus.COMPLETED:
+            case MKWeatherManager.RequestStatus.ALREADY_IN_PROGRESS:
+            case MKWeatherManager.RequestStatus.FAILED:
+            case MKWeatherManager.RequestStatus.NO_MATCH_FOUND:
+            case MKWeatherManager.RequestStatus.SUBMITTED_TOO_SOON:
                 return true;
             default:
                 return false;
