@@ -18,8 +18,8 @@
 
 -keepattributes *Annotation*,EnclosingMethod,Signature,LineNumberTable,SourceFile
 
--dontwarn cyanogenmod.**
--keep class cyanogenmod.app.** { *; }
+-dontwarn mokee.**
+-keep class mokee.app.** { *; }
 
 # Disable a specific optimization that trigger the proguard bug
 -optimizations !code/allocation/variable
